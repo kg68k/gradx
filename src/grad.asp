@@ -1,5 +1,6 @@
 *	RAM DISK DRIVER
 *	90/08/30 Programmed by GORRY.
+*	2024-03-18  modified by TcbnErik
 
 	.cpu	68000
 	.include	doscall.mac
@@ -56,6 +57,8 @@ __HUMANV2__
 Ｈnum_of_drive		equ	$1c75
 
 SizeOfAssignInfo	=	130
+
+ESC:		equ	$1b
 
 
 PSTART::
@@ -249,7 +252,7 @@ disk_write_v::		*ディスクへ書き込む（ベリファイつき）
 *	*	*	*	*	*	*	*	*
 
 disk_control::		*ディスクコントロールを行う
-		movem.l	a0/d1,-(sp)
+		movem.l	d1/a0,-(sp)
 		moveq.l	#$42,d0			*eject禁止、メディア挿入されている
 		movea.l	FAT_ADDRESS(pc),a0
 		move.l	(a0),d1
@@ -273,7 +276,7 @@ disk_control::		*ディスクコントロールを行う
 		}
 		move.b	d0,＠＠drive_condition(a5)
 		moveq.l	#0,d0
-		movem.l	(sp)+,a0/d1
+		movem.l	(sp)+,d1/a0
 		rts
 
 *	*	*	*	*	*	*	*	*
@@ -1557,7 +1560,7 @@ DPB_buffer::
 		ds.b	94
 
 後悔しないな？_mes::
-	dc.b	'  [1;7mファイル・ディレクトリが残っていますがよろしいですか[0m(Y/else)？',0
+	dc.b	'  ',ESC,'[1;7mファイル・ディレクトリが残っていますがよろしいですか',ESC,'[0m(Y/else)？',0
 
 		.even
 
@@ -3222,8 +3225,8 @@ drive_no_5::
 なんか変ぢゃ_mes::
 	dc.b	'　内部で異常動作が発生しました。',13,10,0
 warning_GRADenv_set_mes
-	dc.b	27,'[47m環境変数領域が不足しています。一部環境を設定できませんでした。'
-	dc.b	27,'[0m',7,13,10,0
+	dc.b	ESC,'[47m環境変数領域が不足しています。一部環境を設定できませんでした。'
+	dc.b	ESC,'[0m',7,13,10,0
 GRADDRV_envname::
 	dc.b	'GRADDRV',0
 GRADDRV_env::
@@ -3324,40 +3327,54 @@ DPB_TYPE2::
 	.bss
 
 BSS_START
-
-gram_used::	dc.w	0
-mem_seted::	dc.w	0
-format_seted::	dc.w	0
-status_seted::	dc.w	0
-release_seted::	dc.w	0
-drive_seted::	dc.w	0
-verify_seted::	dc.w	0
-write_seted::	dc.w	0
-mem_mode_seted::
+	.offset	0
+gram_used::	equ	BSS_START+$
 		dc.w	0
-force_install_seted::
+mem_seted::	equ	BSS_START+$
 		dc.w	0
-notver_seted::	dc.w	0
-force_clear_seted::
+format_seted::	equ	BSS_START+$
 		dc.w	0
-AccessLamp_seted::
+status_seted::	equ	BSS_START+$
+		dc.w	0
+release_seted::	equ	BSS_START+$
+		dc.w	0
+drive_seted::	equ	BSS_START+$
+		dc.w	0
+verify_seted::	equ	BSS_START+$
+		dc.w	0
+write_seted::	equ	BSS_START+$
+		dc.w	0
+mem_mode_seted::equ	BSS_START+$
+		dc.w	0
+force_install_seted::	equ	BSS_START+$
+		dc.w	0
+notver_seted::	equ	BSS_START+$
+		dc.w	0
+force_clear_seted::equ	BSS_START+$
+		dc.w	0
+AccessLamp_seted::equ	BSS_START+$
 		dc.w	0
 
-current_drive::	dc.w	0
-
-keep_ssp::	dc.l	0
-
-print_buffer::	ds.b	10
-
-sysboot_switch::
+current_drive::	equ	BSS_START+$
 		dc.w	0
-MemSafeBufPtr::	ds.l	1
-AssignInfoBuf::	ds.b	SizeOfAssignInfo
 
-BSS_END::
-PEND::
+keep_ssp::	equ	BSS_START+$
+		dc.l	0
+
+print_buffer::	equ	BSS_START+$
+		ds.b	10
+
+sysboot_switch::equ	BSS_START+$
+		dc.w	0
+MemSafeBufPtr::	equ	BSS_START+$
+		ds.l	1
+AssignInfoBuf::	equ	BSS_START+$
+		ds.b	SizeOfAssignInfo
+
+BSS_END::	equ	BSS_START+$
+PEND::		equ	BSS_START+$
 
 */*/*/*/*/*/*/*/
-	.end		EXEC_START
+	.end		PSTART
 
 

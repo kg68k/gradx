@@ -1,18 +1,28 @@
 #	makefile for GRAD,GRADLOADER
 #	by GORRY.
+#	modified by TcbnErik
 #
 
 .SUFFIXES:
 
-AS		=	has
-LD		=	hlk
+SRCDIR_MK = ../srcdir.mk
+SRC_DIR = ../src
+-include $(SRCDIR_MK)
 
-ASFLAGS		=	-w -z /a 
+AS		=	has060
+ifndef LD
+LD		=	hlk
+endif
+ifeq ($(findstring hlkx,$(LD)),hlkx)
+USE_HLKX = true
+endif
+
+ASFLAGS		=	-w
 LDFLAGS		=	
 
 
 CV		=	cv
-ASP		=	asp
+ASP		=	asp.r
 AR		=	lha
 FIN		=	ntf
 
@@ -21,8 +31,11 @@ ASPFLAGS	=
 ARFLAGS		=	a
 FINFLAGS	=	-t -kl 2
 
+EXTRACT_LHA	=	lx -i
+GRAD130_LZH	=	$(SRC_DIR)/../archives/GRAD130.LZH
 
-program1	=	GRAD
+
+program1	=	grad
 program2	=	GRADLOADER
 program3	=	GSTOP
 
@@ -37,18 +50,30 @@ source3		=	$(addsuffix .asp,$(program3))
 
 
 
-.default:x
 
 
-.phony:x
+
+.phony: x
+all: grad.r
 
 x	:	$(target1) $(target2) $(target3)
 
-$(target1)	:	$(source1)
-	$(ASP) $(source1) $(program1)
-	$(AS) $(ASFLAGS) $(program1) > err.err
-	$(LD) $(program1)
-	$(CV) $(program1)
+$(ASP):
+	$(EXTRACT_LHA) $(GRAD130_LZH) source.Lzh
+	$(EXTRACT_LHA) source.Lzh asp.r
+	rm source.Lzh
+
+
+$(target1)	:	$(ASP) $(source1)
+	./$(ASP) $(source1) $(program1).s
+	$(AS) $(ASFLAGS) -o$(program1).o $(program1).s
+ifdef USE_HLKX
+	$(LD) $(LDFLAGS) -r -o$@ $(program1).o
+else
+	$(LD) $(LDFLAGS) -o$(program1).x $(program1).o
+	$(CV) $(program1).x
+endif
+
 $(target2)	:	$(source2)
 	$(ASP) $(source2) $(program2)
 	$(AS) $(ASFLAGS) $(program2) > err.err
@@ -104,6 +129,6 @@ $(doc3)		:	$(fin3)
 
 
 
-all		:	x arc doc
+#all		:	x arc doc
 
 
