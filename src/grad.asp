@@ -1,11 +1,13 @@
 *	RAM DISK DRIVER
 *	90/08/30 Programmed by GORRY.
-*	2024-03-18  modified by TcbnErik
+*	2024-03-18 modified by TcbnErik
 
 	.cpu	68000
 	.include	doscall.mac
 	.include	iocscall.mac
 
+VERSION_STRING:	.reg	'1.0.0'
+VERSION_NUMBER:	.equ	'X'<<24+$01_00_00
 
 
 bcl	macro	n1
@@ -73,8 +75,9 @@ DEVICE_HEADER::
 		dc.l	0		*strategy	*ストラテジルーチン
 		dc.l	0		*interrupt	*割り込みルーチン
 		dc.b	1,'_GRAD__'	*デバイス名
+*			    ^^^^ この4バイトはGRADのドライブかの判別に使っているので変更禁止
 VERSION::				*ここからはデバイスヘッダではない
-		dc.l	'1.29'
+		dc.l	VERSION_NUMBER
 Reserved
 		ds.l	1
 
@@ -1722,6 +1725,8 @@ option_check::
 		beq	AccessLamp_set
 		cmpi.b	#'D',d0
 		beq	DriveType_set
+		cmpi.b	#'E',d0
+		beq	no_setenv_set
 		bra	help_print
 
 
@@ -1809,6 +1814,11 @@ gram_use_set::
 		bmi	cmdline_analyze_ERR2	*組み合わせられないオプションです。
 		move.w	#1,6(a6)		*Ｇ－ＲＡＭ使用フラグ
 		lea	gram_used(pc),a0
+		st.b	(a0)
+		bra	option_check
+
+no_setenv_set::
+		lea	no_setenv(pc),a0
 		st.b	(a0)
 		bra	option_check
 
@@ -2098,8 +2108,7 @@ result_print::
 			addi.b	#'A',d0
 			lea	drive_no_1(pc),a1
 			move.b	d0,(a1)
-			pea	title_mes(pc)
-			DOS	_PRINT
+			bsr	print_title
 			pea	新規登録_mes1(pc)
 			DOS	_PRINT
 			bsr	fb_print
@@ -2109,7 +2118,7 @@ result_print::
 			bsr	dec_print_
 			pea	新規登録_mes2(pc)
 			DOS	_PRINT
-			lea	12(sp),sp
+			addq.w	#8,sp
 
 			move.l	(sp)+,d0		*フォーマットフラグ
 			bsr	other_print
@@ -2129,8 +2138,7 @@ KEEPSIZE	equ	KEEPEND-PSTART
 			addi.b	#'A',d0
 			lea	drive_no_2(pc),a1
 			move.b	d0,(a1)
-			pea	title_mes(pc)
-			DOS	_PRINT
+			bsr	print_title
 			pea	容量変更_mes1(pc)
 			DOS	_PRINT
 			bsr	fb_print
@@ -2140,7 +2148,7 @@ KEEPSIZE	equ	KEEPEND-PSTART
 			bsr	dec_print_
 			pea	容量変更_mes2(pc)
 			DOS	_PRINT
-			lea	12(sp),sp
+			addq.w	#8,sp
 
 			move.l	(sp)+,d0		*フォーマットフラグ
 			bsr	other_print
@@ -2158,8 +2166,7 @@ KEEPSIZE	equ	KEEPEND-PSTART
 			addi.b	#'A',d0
 			lea	drive_no_3(pc),a1
 			move.b	d0,(a1)
-			pea	title_mes(pc)
-			DOS	_PRINT
+			bsr	print_title
 			pea	常駐解除_mes1(pc)
 			DOS	_PRINT
 			bsr	fb_print
@@ -2172,7 +2179,7 @@ KEEPSIZE	equ	KEEPEND-PSTART
 
 			bsr	GRADenv_set
 
-			lea	12(sp),sp
+			addq.w	#8,sp
 			dc.w	_MFREE
 			addq.w	#4,sp
 			bra	EXIT_end
@@ -2185,8 +2192,7 @@ KEEPSIZE	equ	KEEPEND-PSTART
 			addi.b	#'a'-1,d0
 			lea	drive_no_4(pc),a1
 			move.b	d0,(a1)
-			pea	title_mes(pc)
-			DOS	_PRINT
+			bsr	print_title
 			pea	ステータス_mes1(pc)
 			DOS	_PRINT
 			bsr	fb_print
@@ -2196,7 +2202,7 @@ KEEPSIZE	equ	KEEPEND-PSTART
 			bsr	dec_print_
 			pea	ステータス_mes2(pc)
 			DOS	_PRINT
-			lea	12(sp),sp
+			addq.w	#8,sp
 			move.l	(sp)+,d0		*フォーマットフラグ
 			bsr	other_print
 
@@ -2213,6 +2219,9 @@ KEEPSIZE	equ	KEEPEND-PSTART
 		bra	EXIT2_end
 
 GRADenv_set::
+		move.w	no_setenv(pc),d0
+		bne	9f
+
 		move.l	a0,-(sp)
 		move.w	10(a6),d0		*ドライブ名
 		addi.b	#'A',d0
@@ -2253,7 +2262,7 @@ GRADenv_set::
 		bmi	warning_GRADenv_set
 
 		movea.l	(sp)+,a0
-		rts
+9:		rts
 warning_GRADenv_set::
 		tst.w	22(a6)			*CONFIG.SYSからの起動スイッチ
 		@ifeq	{
@@ -2482,13 +2491,6 @@ RAMDISK_MANAGE_NEW::
 			bsr	GRAM_USED_CHECK
 			tst.l	d0
 			bne	RAMDISK_MANAGE_ERR5
-
-			movem.l	d1-d2,-(sp)
-			moveq.l	#0,d1
-			moveq.l	#1,d2
-			moveq.l	#_TGUSEMD,d0
-			trap	#15			*システムで使用中にする
-			movem.l	(sp)+,d1-d2
 		}
 
 		move.w	d2,8(a0)		*RAM_MEMORY_MODE
@@ -2661,6 +2663,14 @@ RAMDISK_MANAGE_NEW::
 
 		tst.l	d0
 		@ifpl	{
+			tst.w	d3
+			@ifne	{
+				movem.l	d1-d2,-(sp)
+				moveq.l	#0,d1
+				moveq.l	#1,d2
+				IOCS	_TGUSEMD	*システムで使用中にする
+				movem.l	(sp)+,d1-d2
+			}
 			move.l	d1,4(a0)			*RAM_SIZE
 			moveq.l	#1,d0			*領域確保
 		}			
@@ -2687,9 +2697,13 @@ GRAM_USED_CHECK::	*Ｇ－ＲＡＭが既に使用されているかどうかチ�
 				movea.l	DPB_buffer+18(pc),a0	*装置ドライバへのポインタ
 				cmpi.l	#'GRAD',14+2(a0)	*デバイス名＋２
 				@ifeq	{
-					tst.w	＿GRAM_MEMORY_MODE-8(a0)	*PSTARTのjmpの分だけ引いておく
-					bne	GRAM_USED_CHECK_end1
-				}
+					move.l	VERSION(pc),d0
+					cmp.l	22(a0),d0	*バージョン
+					@ifeq	{
+						tst.w	＿GRAM_MEMORY_MODE-8(a0)	*PSTARTのjmpの分だけ引いておく
+						bne	GRAM_USED_CHECK_end1
+					}
+				}				
 			}
 			subq.w	#1,d3
 			bne	<
@@ -3015,12 +3029,21 @@ div_number::	dc.w	1000,100,10,1
 
 *	*	*	*	*	*	*	*	*
 
-help_print::
+print_title:
 		pea	title_mes(pc)
+		tst.w	22(a6)			*GRADLOADERからの起動スイッチ
+		@ifeq	{
+			addq.l	#title_mes2-title_mes,(sp)
+		}
 		DOS	_PRINT
+		addq.w	#4,sp
+		rts
+
+help_print::
+		bsr	print_title
 		pea	help_mes(pc)
 		DOS	_PRINT
-		addq.w	#8,sp
+		addq.w	#4,sp
 		move.w	#-1,-(sp)
 		bra	EXIT2_end
 
@@ -3146,12 +3169,15 @@ help_mes::
 	dc.b   '　  -H    登録時に Human のバージョンチェックを行いません。',13,10
 	dc.b   '　  -A[n] TIMERランプをアクセスランプにします。n=1で行ないます。省略時 1。',13,10
 	dc.b   '　  -D[n] 登録時にドライブタイプを指定します(0=GRAD,1=2HD,2=2HDE)。',13,10
+	dc.b   '　  -E    環境変数を設定しません。',13,10
 	dc.b	0
 
 title_mes::
 	dc.b	13,10
-	dc.b	'RAM DISK DRIVER 「ＧＲＡＤ．ｒ」 Copyright (C) 1990-94 GORRY.',13,10
-	dc.b	' Version 1.30 : 94/11/15  Programmed by GORRY.'
+title_mes2::
+	dc.b	'GRADX ',VERSION_STRING,' Copryright (C) 2024 TcbnErik.',13,10
+	dc.b	'  based on ','RAM DISK DRIVER 「ＧＲＡＤ．ｒ」 Copyright (C) 1990-94 GORRY.',13,10
+	dc.b	'           ',' Version 1.30 : 94/11/15  Programmed by GORRY.'
 CR::
 	dc.b	13,10
 	dc.b	0
@@ -3353,6 +3379,8 @@ notver_seted::	equ	BSS_START+$
 force_clear_seted::equ	BSS_START+$
 		dc.w	0
 AccessLamp_seted::equ	BSS_START+$
+		dc.w	0
+no_setenv::	equ	BSS_START+$
 		dc.w	0
 
 current_drive::	equ	BSS_START+$

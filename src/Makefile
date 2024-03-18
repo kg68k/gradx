@@ -31,9 +31,14 @@ ASPFLAGS	=
 ARFLAGS		=	a
 FINFLAGS	=	-t -kl 2
 
+U8TOSJ		=	u8tosj
+CP_P		=	cp -p
 EXTRACT_LHA	=	lx -i
-GRAD130_LZH	=	$(SRC_DIR)/../archives/GRAD130.LZH
+ZIP		=	zip -9
 
+GRAD130_LZH	=	GRAD130.LZH
+SRC_ZIP		=	src.zip
+GRADX_ZIP	=	gradx.zip
 
 program1	=	grad
 program2	=	GRADLOADER
@@ -53,14 +58,19 @@ source3		=	$(addsuffix .asp,$(program3))
 
 
 
-.phony: x
+.phony: x archive
 all: grad.r
 
 x	:	$(target1) $(target2) $(target3)
 
-$(ASP):
+
+$(GRAD130_LZH):
+	$(CP_P) $(SRC_DIR)/../archives/$(GRAD130_LZH) $@
+
+$(ASP): $(GRAD130_LZH)
 	$(EXTRACT_LHA) $(GRAD130_LZH) source.Lzh
-	$(EXTRACT_LHA) source.Lzh asp.r
+	$(EXTRACT_LHA) source.Lzh $@
+	touch $@
 	rm source.Lzh
 
 
@@ -127,8 +137,20 @@ $(doc3)		:	$(fin3)
 	$(FIN) $(FINFLAGS) $^ > $@
 
 
+archive: $(GRADX_ZIP)
 
+$(GRADX_ZIP): $(GRAD130_LZH) $(SRC_ZIP) $(target1) CHANGELOG.txt README.txt
+	rm -f $@
+	$(ZIP) $@ $^
 
-#all		:	x arc doc
+$(SRC_ZIP): $(source1) Makefile
+	rm -f $@
+	$(ZIP) $@ $^
+
+CHANGELOG.txt: $(SRC_DIR)/../CHANGELOG.md
+	$(U8TOSJ) < $^ >! $@
+
+README.txt: $(SRC_DIR)/../README.md
+	$(U8TOSJ) < $^ >! $@
 
 
