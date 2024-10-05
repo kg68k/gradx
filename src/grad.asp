@@ -1,6 +1,6 @@
 *	RAM DISK DRIVER
 *	90/08/30 Programmed by GORRY.
-*	2024-03-18 modified by TcbnErik
+*	2024-10-06 modified by TcbnErik
 
 	.cpu	68000
 	.include	doscall.mac
@@ -3353,54 +3353,39 @@ DPB_TYPE2::
 	.bss
 
 BSS_START
-	.offset	0
-gram_used::	equ	BSS_START+$
-		dc.w	0
-mem_seted::	equ	BSS_START+$
-		dc.w	0
-format_seted::	equ	BSS_START+$
-		dc.w	0
-status_seted::	equ	BSS_START+$
-		dc.w	0
-release_seted::	equ	BSS_START+$
-		dc.w	0
-drive_seted::	equ	BSS_START+$
-		dc.w	0
-verify_seted::	equ	BSS_START+$
-		dc.w	0
-write_seted::	equ	BSS_START+$
-		dc.w	0
-mem_mode_seted::equ	BSS_START+$
-		dc.w	0
-force_install_seted::	equ	BSS_START+$
-		dc.w	0
-notver_seted::	equ	BSS_START+$
-		dc.w	0
-force_clear_seted::equ	BSS_START+$
-		dc.w	0
-AccessLamp_seted::equ	BSS_START+$
-		dc.w	0
-no_setenv::	equ	BSS_START+$
-		dc.w	0
 
-current_drive::	equ	BSS_START+$
+gram_used::	dc.w	0
+mem_seted::	dc.w	0
+format_seted::	dc.w	0
+status_seted::	dc.w	0
+release_seted::	dc.w	0
+drive_seted::	dc.w	0
+verify_seted::	dc.w	0
+write_seted::	dc.w	0
+mem_mode_seted::
 		dc.w	0
-
-keep_ssp::	equ	BSS_START+$
-		dc.l	0
-
-print_buffer::	equ	BSS_START+$
-		ds.b	10
-
-sysboot_switch::equ	BSS_START+$
+force_install_seted::
 		dc.w	0
-MemSafeBufPtr::	equ	BSS_START+$
-		ds.l	1
-AssignInfoBuf::	equ	BSS_START+$
-		ds.b	SizeOfAssignInfo
+notver_seted::	dc.w	0
+force_clear_seted::
+		dc.w	0
+AccessLamp_seted::
+		dc.w	0
+no_setenv::	dc.w	0
 
-BSS_END::	equ	BSS_START+$
-PEND::		equ	BSS_START+$
+current_drive::	dc.w	0
+
+keep_ssp::	dc.l	0
+
+print_buffer::	ds.b	10
+
+sysboot_switch::
+		dc.w	0
+MemSafeBufPtr::	ds.l	1
+AssignInfoBuf::	ds.b	SizeOfAssignInfo
+
+BSS_END::
+PEND::
 
 */*/*/*/*/*/*/*/
 	.end		PSTART

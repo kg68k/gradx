@@ -10,9 +10,7 @@ SRC_DIR = ../src
 -include $(SRCDIR_MK)
 
 AS		=	has060
-ifndef LD
-LD		=	hlk
-endif
+LD		?=	hlk
 ifeq ($(findstring hlkx,$(LD)),hlkx)
 USE_HLKX = true
 endif
@@ -78,7 +76,7 @@ $(target1)	:	$(ASP) $(source1)
 	./$(ASP) $(source1) $(program1).s
 	$(AS) $(ASFLAGS) -o$(program1).o $(program1).s
 ifdef USE_HLKX
-	$(LD) $(LDFLAGS) -r -o$@ $(program1).o
+	$(LD) $(LDFLAGS) -r --omit-bss -o$@ $(program1).o
 else
 	$(LD) $(LDFLAGS) -o$(program1).x $(program1).o
 	$(CV) $(program1).x
